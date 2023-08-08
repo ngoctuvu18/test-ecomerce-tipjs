@@ -1,25 +1,70 @@
 'use strict'
 
-const { product, clothing, electronic,furniture } = require('../models/product.model')
+const { product, clothing, electronic, furniture } = require('../models/product.model')
 const { BadRequestError, ForbiddenError } = require('../core/error.response')
+const {
+  findAllDraftsForShop,
+  publishProductByShop,
+  findAllPublishForShop,
+  unPublishProductByShop,
+  searchProductByUser,
+  findAllProducts,
+  findProduct,
+} = require('../models/repositories/product.repo')
 
 //define Factory class to create product
 class ProductFactory {
   /*
-        type: 'Clothing',
-        payload
-    */
+    type: 'Clothing',
+    payload
+  */
+
+  static productRegistry = {} //key-class
+  static registerProductType(type, classRef) {
+    ProductFactory.productRegistry[type] = classRef
+  }
+
   static async createProduct(type, payload) {
-    switch (type) {
-      case 'Electronics':
-        return new Electronics(payload)
-      case 'Clothing':
-        return new Clothing(payload).createProduct()
-      case 'Furniture':
-        return new Furniture(payload).createProduct()
-      default:
-        throw new BadRequestError(`Invalid Product Types: ${type}`)
-    }
+    const productClass = ProductFactory.productRegistry[type]
+    if (!productClass) throw new BadRequestError(`Invalid Product Types: ${type}`)
+    return new productClass(payload).createProduct()
+  }
+
+  //PUT
+  static async publishProductByShop({ product_shop, product_id }) {
+    return await publishProductByShop({ product_shop, product_id })
+  }
+  static async unPublishProductByShop({ product_shop, product_id }) {
+    return await unPublishProductByShop({ product_shop, product_id })
+  }
+
+  //End PUT
+
+  // query ///
+  static async findAllDraftsForShop({ product_shop, limit = 50, skip = 0 }) {
+    const query = { product_shop, isDraft: true }
+    return await findAllDraftsForShop({ query, limit, skip })
+  }
+  static async findAllPublishForShop({ product_shop, limit = 50, skip = 0 }) {
+    const query = { product_shop, isPublished: true }
+    return await findAllPublishForShop({ query, limit, skip })
+  }
+  static async searchProducts({ keySearch }) {
+    return await searchProductByUser({ keySearch })
+  }
+
+  static async findAllProducts({ limit = 50, sort = 'ctime', page = 1, filter = { isPublished: true } }) {
+    return await findAllProducts({
+      limit,
+      sort,
+      filter,
+      page,
+      select: ['product_name', 'product_price', 'product_thumb'],
+    })
+  }
+
+  static async findProduct({ product_id }) {
+    return await findProduct({ product_id, unSelect: ['__v', 'product_variation'] })
   }
 }
 
@@ -86,5 +131,9 @@ class Furniture extends Product {
     return newProduct
   }
 }
+// register product types
+ProductFactory.registerProductType('Electronics', Electronics)
+ProductFactory.registerProductType('Clothing', Clothing)
+ProductFactory.registerProductType('Furniture', Furniture)
 
 module.exports = ProductFactory
