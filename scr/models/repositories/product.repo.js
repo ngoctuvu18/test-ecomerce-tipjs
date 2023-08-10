@@ -3,7 +3,8 @@
 const { product, clothing, electronic, furniture } = require('../../models/product.model')
 const { BadRequestError, ForbiddenError } = require('../../core/error.response')
 const { Types } = require('mongoose')
-const { getSelectData, unGetSelectData } = require('../../utils')
+const { getSelectData, unGetSelectData, convertToObjectIdMongodb } = require('../../utils')
+const { get } = require('lodash')
 
 const findAllDraftsForShop = async ({ query, limit, skip }) => {
   return await queryProduct({ query, limit, skip })
@@ -19,6 +20,11 @@ const findAllProducts = async ({ limit, sort, page, filter, select }) => {
 }
 const findProduct = async ({ product_id, unSelect }) => {
   return await product.findById(product_id).select(unGetSelectData(unSelect))
+}
+const updateProductById = async ({ productId, bodyUpdate, model, isNew = true }) => {
+  return await model.findByIdAndUpdate(productId, bodyUpdate, {
+    new: isNew,
+  })
 }
 const searchProductByUser = async ({ keySearch }) => {
   const regexSearch = new RegExp(keySearch)
@@ -65,6 +71,23 @@ const queryProduct = async ({ query, limit, skip }) => {
     .lean()
     .exec()
 }
+const getProductById = async productId => {
+  return await product.findOne({ _id: convertToObjectIdMongodb(productId) }).lean()
+}
+const checkProductByServer = async products => {
+  return await Promise.all(
+    products.map(async product => {
+      const foundProduct = await getProductById(product.productId)
+      if (foundProduct) {
+        return {
+          price: foundProduct.product_price,
+          quantity: product.quantity,
+          productId: product.productId,
+        }
+      }
+    }),
+  )
+}
 
 module.exports = {
   findAllDraftsForShop,
@@ -74,4 +97,7 @@ module.exports = {
   searchProductByUser,
   findAllProducts,
   findProduct,
+  updateProductById,
+  getProductById,
+  checkProductByServer,
 }
