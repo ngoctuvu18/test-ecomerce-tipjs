@@ -2,6 +2,10 @@
 
 const { findCartById } = require('../models/repositories/cart.repo')
 const { BadRequestError, NotFoundError } = require('../core/error.response')
+const { checkProductByServer } = require('../models/repositories/product.repo')
+const { getDiscountAmount } = require('./discount.service')
+const { acquireLock, releaseLock } = require('./redis.service')
+const { order } = require('../models/order.model')
 
 class CheckoutService {
   //login and without login
@@ -99,6 +103,59 @@ class CheckoutService {
       checkout_order,
     }
   }
+  //order
+  static async orderByUser({ shop_order_ids, cartId, userId, user_address = {}, user_payment = {} }) {
+    const { shop_order_ids_new, checkout_order } = await CheckoutService.checkoutReview({
+      userId,
+      cartId,
+      shop_order_ids,
+    })
+    // check lai mot lan nua xem co vuot hang ton kho hay khong??
+    // get new Array Product
+    const products = shop_order_ids_new.flatMap(order => order.item_products)
+    console.log(`[1]::`, products)
+    const acquireProduct = []
+    for (let i = 0; i < products.length; i++) {
+      const { productId, quantity } = products[i]
+      const keyLock = await acquireLock(productId, quantity, cartId)
+      acquireProduct.push(keyLock ? true : false)
+      if (keyLock) {
+        await releaseLock(keyLock)
+      }
+    }
+    // check neu co 1 san pham het han trong kho
+    if (acquireProduct.includes(false)) {
+      throw new BadRequestError('Mot so san pham da duoc cap nhat, vui long quay lai gio hang ...')
+    }
+    const newOrder = order.create({
+      order_userId: userId,
+      order_checkout: checkout_order,
+      order_shipping: user_address,
+      order_payment: user_payment,
+      order_products: shop_order_ids_new,
+    })
+    //truong hop thanh cong thi remove product trong gio hang
+    if (newOrder) {
+      // remove product in my cart
+    }
+    return newOrder
+  }
+  /*
+      1> Query Orders [User]
+   */
+  static async getOrdersByUser() {}
+  /*
+      1> Query Orders Using Id [User]
+   */
+  static async getOneOrderByUser() {}
+  /*
+      1> Cancel Orders [User]
+   */
+  static async cancelOrderByUser() {}
+  /*
+      1> Update Orders Status [Shop | Admin]
+   */
+  static async updateOrderStatusByShop() {}
 }
 
 module.exports = CheckoutService
