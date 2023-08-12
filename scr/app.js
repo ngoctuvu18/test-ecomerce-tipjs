@@ -16,9 +16,9 @@ app.use(
   }),
 )
 //test pub.sub redis
-// require('./test/inventory.test')
-// const productTest = require('./test/product.test')
-// productTest.purchaseProduct('product: 001', '10')
+require('./test/inventory.test')
+const productTest = require('./test/product.test')
+productTest.purchaseProduct('product: 001', '10')
 //init db
 require('./dbs/init.mongdb')
 // const { checkOverload } = require('./helpers/check.connect')
