@@ -1,0 +1,20 @@
+@url_dev =http://localhost:3056/v1/api/
+
+###signup
+POST {{url_dev}}shop/signup
+Content-Type: application/json
+x-api-key: 4dffcbda409cfd716c5c8a27b9c28c13d76ee70412311f97347706a0325508877b1162b19a61f202505dd6702b1db598907796217e1fa14299a2d8eef159a839
+
+
+{
+    "name":"Shop An ngon",
+    "email":"shopBee01@gmail.com",
+    "password":"abc123"
+}
+
+###login
+POST {{url_dev}}shop/login
+x-api-key:6bf8524dd24aace2fa0aaa9234a4b73e4c2e9ac8054ba8d41b5cae0b197fdd51b01bd80cb6320bd6134d68d14a8c7aebb7d23be1256dd959fb794cabf4904003
+   {"email":"shopBee@gmail.com",
+    "password":"abc123"
+}
